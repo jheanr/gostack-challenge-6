@@ -45,9 +45,11 @@ class ImportTransactionsService {
       stream.on('end', resolve);
     });
 
+    // eslint-disable-next-line no-restricted-syntax
     for (const transaction of transactionsFromFile) {
       const { title, value, type, category } = transaction;
 
+      // eslint-disable-next-line no-await-in-loop
       const newTransaction = await createTransaction.execute({
         title,
         value,
