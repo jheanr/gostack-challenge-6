@@ -26,37 +26,41 @@ class ImportTransactionsService {
     const importTransactionsFile = path.join(uploadConfig.directory, fileName);
 
     const transactions: Transaction[] = [];
+    const transactionsFromFile: TransactionCSV[] = [];
 
-    await new Promise(() =>
-      fs
-        .createReadStream(importTransactionsFile)
-        .pipe(
-          csvParser({
-            delimiter: ',',
-            from_line: 2,
-            columns: ['title', 'type', 'value', 'category'],
-            trim: true,
-          }),
-        )
-        .on('data', async (transaction: TransactionCSV) => {
-          const { title, value, type, category } = transaction;
-
-          const newTransaction = await createTransaction.execute({
-            title,
-            value,
-            type,
-            category,
-          });
-
-          transactions.push(newTransaction);
-        })
-        .on('end', () => {
-          fs.promises.unlink(importTransactionsFile);
-        })
-        .on('error', err => {
-          throw new AppError(err.message);
-        }),
+    const stream = fs.createReadStream(importTransactionsFile).pipe(
+      csvParser({
+        delimiter: ',',
+        from_line: 2,
+        columns: ['title', 'type', 'value', 'category'],
+        trim: true,
+      }),
     );
+
+    stream.on('data', data => {
+      transactionsFromFile.push(data);
+    });
+
+    await new Promise(resolve => {
+      stream.on('end', resolve);
+    });
+
+    for (const transaction of transactionsFromFile) {
+      const { title, value, type, category } = transaction;
+
+      const newTransaction = await createTransaction.execute({
+        title,
+        value,
+        type,
+        category,
+      });
+
+      transactions.push(newTransaction);
+    }
+
+    if (transactions) {
+      await fs.promises.unlink(importTransactionsFile);
+    }
 
     return transactions;
   }
