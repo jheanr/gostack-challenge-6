@@ -13,15 +13,7 @@ const upload = multer(uploadConfig);
 
 transactionsRouter.get('/', async (request, response) => {
   const transactionsRepository = getCustomRepository(TransactionsRepository);
-  const transactions = await transactionsRepository.all();
-
-  transactions.forEach(transaction => {
-    delete transaction.category_id;
-    delete transaction.created_at;
-    delete transaction.updated_at;
-    delete transaction.category.created_at;
-    delete transaction.category.updated_at;
-  });
+  const transactions = await transactionsRepository.find();
 
   const balance = await transactionsRepository.getBalance();
 
@@ -40,11 +32,11 @@ transactionsRouter.post('/', async (request, response) => {
     category,
   });
 
+  delete transaction.category_id;
   delete transaction.created_at;
   delete transaction.updated_at;
-  delete transaction.category_id;
-
-  transaction.category = category;
+  delete transaction.category.created_at;
+  delete transaction.category.updated_at;
 
   return response.json(transaction);
 });

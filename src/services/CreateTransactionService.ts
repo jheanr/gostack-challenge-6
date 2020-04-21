@@ -26,37 +26,31 @@ class CreateTransactionService {
       throw new AppError('Invalid transaction type.');
     }
 
-    const balance = await transactionsRepository.getBalance();
+    const { total } = await transactionsRepository.getBalance();
 
-    if (type === 'outcome' && value > balance.total) {
+    if (type === 'outcome' && value > total) {
       throw new AppError(
         'Outcome amount higher than balance. Try another value.',
       );
     }
 
-    const checkCategoryExists = await categoriesRepository.findOne({
+    let transactionCategory = await categoriesRepository.findOne({
       where: { title: category },
     });
 
-    let category_id = '';
-
-    if (checkCategoryExists) {
-      category_id = checkCategoryExists.id;
-    } else {
-      const newCategory = categoriesRepository.create({
+    if (!transactionCategory) {
+      transactionCategory = categoriesRepository.create({
         title: category,
       });
 
-      await categoriesRepository.save(newCategory);
-
-      category_id = newCategory.id;
+      await categoriesRepository.save(transactionCategory);
     }
 
     const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id,
+      category: transactionCategory,
     });
 
     await transactionsRepository.save(transaction);
